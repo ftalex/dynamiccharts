@@ -29,7 +29,7 @@
 
 -(void)croperViewScale:(id)sender
 {
-    if (self.chart.chartData.count == 0)
+    if (self.chart.dataCount == 0)
         return;
     if([(UIPinchGestureRecognizer *)sender state]==UIGestureRecognizerStateBegan)
     {
@@ -68,12 +68,12 @@ static float startMaxRangeVal;
     double oneSideShiftRange = (startRangesDiff  - newRangesDiffs)/2;
     
     double newMin = startMinRangeVal - oneSideShiftRange;
-    if (newMin  < [self.chart.chartData[0][0] doubleValue]){
-        newMin  = [self.chart.chartData[0][0] doubleValue];
+    if (newMin  < self.chart.minX){
+        newMin  = self.chart.minX;
     }
     double newMax = startMaxRangeVal + oneSideShiftRange;
-    if (newMax  > [[self.chart.chartData lastObject][0] doubleValue]){
-        newMax  = [[self.chart.chartData lastObject][0] doubleValue];
+    if (newMax  > self.chart.maxX){
+        newMax  = self.chart.maxX;
     }
     if (newMin >= newMax || ((newMax - newMin) < 0.000005) )
         return;
@@ -104,7 +104,7 @@ static float startMaxRangeVal;
     if (offsetForRanges > (scrollView.contentSize.width - scrollView.frame.size.width))
         offsetForRanges = scrollView.contentSize.width - scrollView.frame.size.width;
     
-    double newMinRange = [self getArgumentByX:0];
+    float newMinRange = [self getArgumentByX:0];
     if (self.chart.xAxis.nciAxisDecreasing){
         self.chart.maxRangeVal = newMinRange;
         self.chart.minRangeVal = newMinRange - rangesPeriod;
@@ -119,13 +119,12 @@ static float startMaxRangeVal;
 }
 
 - (void)layoutSubviews{
-    
     [super layoutSubviews];
-    if (self.chart.chartData.count == 0)
+    if (self.chart.dataCount == 0)
         return;
     float scaleIndex = [self getScaleIndex];
     float contentWidth = self.gridWidth* scaleIndex;
-    float timeDiff = [[self.chart.chartData lastObject][0] doubleValue] - [self.chart.chartData[0][0] doubleValue];
+    float timeDiff = self.chart.maxX - self.chart.minX;
     if (timeDiff == 0)
         timeDiff = 1000*60*2;
     
@@ -134,15 +133,15 @@ static float startMaxRangeVal;
     gridScroll.contentSize = CGSizeMake(contentWidth, self.gridHeigth);
     
     if (self.chart.minRangeVal != self.chart.minRangeVal){
-        self.chart.minRangeVal = [self.chart.chartData[0][0] doubleValue];
-        self.chart.maxRangeVal = [[self.chart.chartData lastObject][0] doubleValue];
+        self.chart.minRangeVal = self.chart.minX;
+        self.chart.maxRangeVal = self.chart.maxX;
     }
     
     double timeOffest;
     if (self.chart.xAxis.nciAxisDecreasing){
-        timeOffest =  [[self.chart.chartData lastObject] [0] doubleValue] - self.chart.maxRangeVal;
+        timeOffest =  self.chart.maxX - self.chart.maxRangeVal;
     } else {
-        timeOffest = self.chart.minRangeVal  -  [self.chart.chartData[0][0] doubleValue];
+        timeOffest = self.chart.minRangeVal - self.chart.minX;
     }
 
     if (timeOffest < 0 || timeOffest != timeOffest)
@@ -152,90 +151,10 @@ static float startMaxRangeVal;
     [self.chart layoutSelectedPoint];
 }
 
-- (NSArray *)getValsInRanges{
-    float minYVal = MAXFLOAT;
-    float maxYVal = -MAXFLOAT;
-    long firstDataIndex = self.chart.chartData.count;
-    long lastChartIndex = 0;
-    long index;
-    for(index = 1; index < self.chart.chartData.count; index++){
-        NSArray *point = self.chart.chartData[index];
-        
-        for (int serisNum = 0; serisNum < ((NSArray *)point[1]).count; serisNum++){
-            if ([point[1][serisNum] isKindOfClass:[NSNull class]]){
-                continue;
-            }
-            NSArray * prevPoint = self.chart.chartData[index - 1];
-            if ([prevPoint[1][serisNum] isKindOfClass:[NSNull class]]){
-                prevPoint = @[prevPoint[serisNum], point[1]];
-            }
-            
-            NSArray * nextPoint;
-            if (self.chart.chartData.count != (index + 1)){
-                nextPoint = self.chart.chartData[index + 1];
-                if ([nextPoint[1][serisNum] isKindOfClass:[NSNull class]]){
-                    nextPoint = @[nextPoint[0], point[1]];
-                }
-            } else {
-                nextPoint = point;
-            }
-            
-            float curMax = [prevPoint[1][serisNum] floatValue];
-            float curMin = [prevPoint[1][serisNum] floatValue];
-            if ([point[1][serisNum] floatValue] > [prevPoint[1][serisNum] floatValue]){
-                curMax = [point[1][serisNum] floatValue];
-            } else {
-                curMin= [point[1][serisNum] floatValue];
-            }
-            if ( curMax < [nextPoint[1][serisNum] floatValue]){
-                curMax = [nextPoint[1][serisNum] floatValue];
-            }
-            if ( curMin > [nextPoint[1][serisNum] floatValue]){
-                curMin = [nextPoint[1][serisNum] floatValue];
-            }
-            
-            if ( self.chart.minRangeVal <= [point[0] doubleValue] &&
-                ( minYVal == MAXFLOAT || self.chart.maxRangeVal  >= [point[0] doubleValue])){
-                
-                if (firstDataIndex > (index - 1)){
-                    firstDataIndex = (index - 1);
-                }
-                if (lastChartIndex < (index + 1)){
-                    lastChartIndex = (index + 1);
-                }
-                if (curMin < minYVal)
-                    minYVal = curMin;
-                if (curMax > maxYVal)
-                    maxYVal = curMax;
-            }
-        }
-    }
-    
-    if (minYVal == MAXFLOAT)
-        return @[@(0), @(1), @(0), @(self.chart.chartData.count)];
-    
-    float diff = maxYVal - minYVal;
-    if (diff == 0){
-        maxYVal = maxYVal + 1;
-        minYVal = minYVal - 1;
-    } else {
-        maxYVal = maxYVal + diff*self.chart.topBottomGridSpace/100;
-        minYVal = minYVal - diff*self.chart.topBottomGridSpace/100;
-    }
-    
-    if (lastChartIndex < self.chart.chartData.count)
-        lastChartIndex = lastChartIndex + 1;
-    
-    return @[@(minYVal),
-             @(maxYVal),
-             @(firstDataIndex),
-             @(lastChartIndex)];
-}
-
-- (double)getScaleIndex{
-    if ( self.chart.minRangeVal !=  self.chart.minRangeVal || self.chart.maxRangeVal !=  self.chart.maxRangeVal)
+- (float)getScaleIndex{
+    if ( self.chart.minRangeVal !=  self.chart.maxRangeVal  || self.chart.maxRangeVal !=  self.chart.maxRangeVal )
         return 1;
-    double rangeDiff = [self getRangesPeriod];
+    float rangeDiff = [self getRangesPeriod];
     if (rangeDiff == 0){
         return  1;
     } else {
@@ -243,17 +162,16 @@ static float startMaxRangeVal;
     }
 }
 
-- (double)getXValuesGap{
-    if (self.chart.chartData.count == 0)
-        return 0;
-    return [[self.chart.chartData lastObject][0] doubleValue] - [self.chart.chartData[0][0] doubleValue];
+- (float)getXValuesGap{
+    if (!self.chart.dataCount) return 0;
+    return self.chart.maxX - self.chart.minX;
 }
 
-- (double)getRangesPeriod{
+- (float)getRangesPeriod{
     return  self.chart.maxRangeVal - self.chart.minRangeVal;
 }
 
-- (double)getArgumentByX:(float) pointX{
+- (float)getArgumentByX:(float) pointX{
     float scaleIndex = [self getScaleIndex];
     
     if (self.chart.xAxis.nciAxisDecreasing){
@@ -263,21 +181,19 @@ static float startMaxRangeVal;
     }
 }
 
-- (float)getXByArgument:(double) arg{
+- (float)getXByArgument:(float) arg{
     float scaleIndex = [self getScaleIndex];
     return [super getXByArgument:arg]* scaleIndex - gridScroll.contentOffset.x;
 }
 
 - (void)detectRanges{
-    NSArray *yVals = [self getValsInRanges];
-    self.minYVal = [yVals[0] floatValue];
-    self.maxYVal = [yVals[1] floatValue];
+    self.minYVal = self.chart.minY;
+    self.maxYVal = self.chart.maxY;
     self.yStep = self.gridHeigth/(self.maxYVal - self.minYVal);
 }
 
 - (NSArray *)getFirstLast{
-    NSArray *values = [self getValsInRanges];
-    return @[values[2], values[3]];
+    return @[[NSNumber numberWithFloat:self.chart.minRangeVal], [NSNumber numberWithFloat:self.chart.maxRangeVal]];
 }
 
 

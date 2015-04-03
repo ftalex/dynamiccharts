@@ -90,19 +90,19 @@
 
 }
 
-- (void)setMinRangeVal:(double)minRangeVal{
+- (void)setMinRangeVal:(float)minRangeVal{
     self.topChart.minRangeVal = minRangeVal;
 }
 
-- (void)setMaxRangeVal:(double)maxRangeVal{
+- (void)setMaxRangeVal:(float)maxRangeVal{
     self.topChart.maxRangeVal = maxRangeVal;
 }
 
-- (double)maxRangeVal{
+- (float)maxRangeVal{
     return self.topChart.maxRangeVal;
 }
 
-- (double)minRangeVal{
+- (float)minRangeVal{
     return self.topChart.minRangeVal;
 }
 

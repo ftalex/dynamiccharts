@@ -100,17 +100,13 @@
     }
 }
 
-- (void)resetLabels{
-    for (UILabel *label in _labels){
-        [label removeFromSuperview];
-    }
-    [_labels removeAllObjects];
-}
-
 - (void)redrawLabels:(float)length min:(double)min max:(double)max{
     
     _dimention = length;
-    [self resetLabels];
+    for (UILabel *label in _labels){
+        [label removeFromSuperview];
+    }
+     [_labels removeAllObjects];
      _step = length/(max - min);
     [self formatDateForDistance];
     
@@ -119,7 +115,7 @@
             return;
         for(int i = 0; i<= length/_labelsDistance; i++){
             float yPos = length - i*_labelsDistance - _labelsDistance/2 + self.chart.nciGridTopMargin;
-            double curVal = [self.chart.graph getValByY: _labelsDistance*i];
+            double curVal = [self.chart.graph getArgumentByY: _labelsDistance*i];
             UILabel *label;
             if (_invertedLabes){
                 label = [[UILabel alloc] initWithFrame:

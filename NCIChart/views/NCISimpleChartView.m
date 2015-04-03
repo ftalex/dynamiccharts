@@ -21,6 +21,8 @@
 
 @implementation NCISimpleChartView
 
+//NSString *const nciNumberOfDataSets = @"nciNumberOfDataSets";
+
 - (id)initWithFrame:(CGRect)frame
 {
     self = [super initWithFrame:(CGRect)frame];
@@ -62,7 +64,15 @@
     dateFormatter = [[NSDateFormatter alloc] init];
     [dateFormatter setDateFormat:@"yyyy-MMM-dd HH:mm:ss"];
     self.backgroundColor = [UIColor clearColor];
+    
     self.chartData = [[NSMutableArray alloc] init];
+    self.dataCount = 0;
+    
+    self.minY = 0;
+    self.maxY = 1;
+
+    self.minX = 0;
+    self.maxX = 1;
 }
 
 - (id)initWithFrame:(CGRect)frame andOptions:(NSDictionary *)opts{
@@ -94,12 +104,16 @@
         _nciGridVertical = [[NCILine alloc] initWithOptions:[opts objectForKey:nciGridVertical]];
         _nciGridHorizontal = [[NCILine alloc]  initWithOptions:[opts objectForKey:nciGridHorizontal]];
         
+//        if ([opts objectForKey:nciNumberOfDataSets]){
+//            _numberOfDataSets = (int)[opts objectForKey: nciGraphRenderer];
+//        }
+        
         if ([opts objectForKey:nciGraphRenderer]){
             Class rendererClass = (Class)[opts objectForKey: nciGraphRenderer];
             self.graph = [[rendererClass alloc] initWithChart:self];
             self.graph.chart = self;
         }
-    
+        
         if ([opts objectForKey:nciGridLeftMargin])
             _nciGridLeftMargin = [[opts objectForKey:nciGridLeftMargin] floatValue];
         if ([opts objectForKey:nciGridRightMargin])
@@ -122,7 +136,7 @@
         if ([opts objectForKey:nciHasHorizontalGrid]){
             self.nciHasHorizontalGrid = [[opts objectForKey:nciHasHorizontalGrid] boolValue];
         }
-
+        
         [self addSubviews];
         //order of 2 next opts is important
         if ([opts objectForKey:nciHasSelection]){
@@ -147,7 +161,7 @@
     UIView *selectedPoint;
     float curSize = [_nciSelPointSizes[0] floatValue];
     if (num <[_nciSelPointSizes count] && ![_nciSelPointSizes[num] isKindOfClass:[[NSNull null] class]]){
-            curSize = [_nciSelPointSizes[num] floatValue];
+        curSize = [_nciSelPointSizes[num] floatValue];
     }
     if (_nciSelPointImages && _nciSelPointImages.count >= (num+1) && ![_nciSelPointImages[num] isKindOfClass:[NSNull class]]){
         selectedPoint = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, curSize, curSize)];
@@ -204,7 +218,7 @@
     CGPoint location = [recognizer locationInView:self.graph.grid];
     selectedPointArgument = [self.graph getArgumentByX:location.x];
     if (self.nciTapGridAction){
-        self.nciTapGridAction([self.graph getArgumentByX:location.x], [self.graph getValByY:location.y], location.x, location.y);
+        self.nciTapGridAction([self.graph getArgumentByX:location.x], [self.graph getArgumentByY:location.y], location.x, location.y);
     }
     [self layoutSelectedPoint];
 }
@@ -212,89 +226,89 @@
 - (void)layoutSelectedPoint{
     if (selectedPointArgument != selectedPointArgument)
         return;
-    NSArray *prevPoint;
-    for (int i =0; i < _chartData.count; i++){
-        NSArray *point = _chartData[i];
-        NSArray *currentPoint = _chartData[i];
-        if (selectedPointArgument <= [point[0] doubleValue] ){
-            for (int j = 0; j < ((NSArray *)currentPoint[1]).count; j++){
-                id val = currentPoint[1][j];
-                if ([val isKindOfClass:[NSNull class]])
-                    continue;
-                
-                CGPoint pointInGrid = [self.graph pointByValueInGrid:@[currentPoint[0], val]];
-                if (prevPoint && prevPoint[1][j] && ![prevPoint[1][j] isKindOfClass:[NSNull class]]){
-                    if (([point[0]doubleValue] - selectedPointArgument) >
-                        (selectedPointArgument - [prevPoint[0]doubleValue])){
-                        pointInGrid = [self.graph pointByValueInGrid:@[prevPoint[0], prevPoint[1][j]]];
-                        currentPoint = prevPoint;
-                    } else {
-                        currentPoint = point;
-                    }
-                }
-                UIView *selectedPoint;
-                if (selectedPoints.count < (j+1)){
-                    selectedPoint = [self createSelPoint:j];
-                    if (!_nciSelPointImages ||
-                        _nciSelPointImages.count <= j ||
-                        [_nciSelPointImages[j]isKindOfClass:[NSNull class]]){
-                        if(_nciSelPointColors.count > j && ![_nciSelPointColors[j] isKindOfClass:[NSNull class]]){
-                            selectedPoint.backgroundColor =  _nciSelPointColors[j];
-                        } else {
-                            UIColor *newColor = [UIColor colorWithRed:(arc4random() % 255)/255.0f
-                                                                green:(arc4random() % 255)/255.0f
-                                                                 blue:(arc4random() % 255)/255.0f alpha:1.0];
-                            selectedPoint.backgroundColor =  newColor;
-                            if (_nciSelPointColors.count <= j){
-                                [_nciSelPointColors addObject:newColor];
-                            } else {
-                                [_nciSelPointColors replaceObjectAtIndex:j withObject:newColor];
-                            }
-                        }
-                    }  
-                } else {
-                    selectedPoint = selectedPoints[j];
-                }
-                selectedPoint.hidden = NO;
-                selectedPoint.center = CGPointMake(pointInGrid.x + self.graph.chart.nciGridLeftMargin, pointInGrid.y + _nciGridTopMargin);
-                if (pointInGrid.x < 0 || pointInGrid.x >= (self.graph.grid.frame.size.width + 2)){
-                    selectedPoint.hidden = YES;
-                } else {
-                    selectedPoint.hidden = NO;
-                }
-            }
-            
-            if (self.nciSelPointTextRenderer){
-                NSObject *text = self.nciSelPointTextRenderer([currentPoint[0] doubleValue], currentPoint[1]);
-                if ([text isKindOfClass:[NSAttributedString class]]){
-                    _selectedLabel.attributedText = (NSAttributedString *)text;
-                } else {
-                    _selectedLabel.text = (NSString *)text;
-                }
-            } else {
-                NSMutableString *values = [[NSMutableString alloc] init];
-                for (id val in currentPoint[1]){
-                    if (![val isKindOfClass:[NSNull class]]){
-                        [values appendString:[val description]];
-                        [values appendString:@","];
-                    }
-                }
-                if (_nciUseDateFormatter){
-                    _selectedLabel.text = [NSString stringWithFormat:@"y: %@  x:%@", values,
-                                           [dateFormatter stringFromDate: [NSDate dateWithTimeIntervalSince1970:[currentPoint[0] doubleValue]]]];
-                } else {
-                    _selectedLabel.text = [NSString stringWithFormat:@"y: %@  x:% 0.1f", values, [currentPoint[0] doubleValue]];
-                }
-            }
-            return;
-        }
-        prevPoint = point;
-    }
-    for (UIView *selectedPoint in selectedPoints){
-        _selectedLabel.text = @"";
-        selectedPoint.hidden = YES;
-    }
-    selectedPointArgument = NAN;
+//    NSArray *prevPoint;
+//    for (int i =0; i < _chartData.count; i++){
+//        NSArray *point = _chartData[i];
+//        NSArray *currentPoint = _chartData[i];
+//        if (selectedPointArgument <= [point[0] doubleValue] ){
+//            for (int j = 0; j < ((NSArray *)currentPoint[1]).count; j++){
+//                id val = currentPoint[1][j];
+//                if ([val isKindOfClass:[NSNull class]])
+//                    continue;
+//                
+//                CGPoint pointInGrid = [self.graph pointByValueInGrid:@[currentPoint[0], val]];
+//                if (prevPoint && prevPoint[1][j] && ![prevPoint[1][j] isKindOfClass:[NSNull class]]){
+//                    if (([point[0]doubleValue] - selectedPointArgument) >
+//                        (selectedPointArgument - [prevPoint[0]doubleValue])){
+//                        pointInGrid = [self.graph pointByValueInGrid:@[prevPoint[0], prevPoint[1][j]]];
+//                        currentPoint = prevPoint;
+//                    } else {
+//                        currentPoint = point;
+//                    }
+//                }
+//                UIView *selectedPoint;
+//                if (selectedPoints.count < (j+1)){
+//                    selectedPoint = [self createSelPoint:j];
+//                    if (!_nciSelPointImages ||
+//                        _nciSelPointImages.count <= j ||
+//                        [_nciSelPointImages[j]isKindOfClass:[NSNull class]]){
+//                        if(_nciSelPointColors.count > j && ![_nciSelPointColors[j] isKindOfClass:[NSNull class]]){
+//                            selectedPoint.backgroundColor =  _nciSelPointColors[j];
+//                        } else {
+//                            UIColor *newColor = [UIColor colorWithRed:(arc4random() % 255)/255.0f
+//                                                                green:(arc4random() % 255)/255.0f
+//                                                                 blue:(arc4random() % 255)/255.0f alpha:1.0];
+//                            selectedPoint.backgroundColor =  newColor;
+//                            if (_nciSelPointColors.count <= j){
+//                                [_nciSelPointColors addObject:newColor];
+//                            } else {
+//                                [_nciSelPointColors replaceObjectAtIndex:j withObject:newColor];
+//                            }
+//                        }
+//                    }
+//                } else {
+//                    selectedPoint = selectedPoints[j];
+//                }
+//                selectedPoint.hidden = NO;
+//                selectedPoint.center = CGPointMake(pointInGrid.x + self.graph.chart.nciGridLeftMargin, pointInGrid.y + _nciGridTopMargin);
+//                if (pointInGrid.x < 0 || pointInGrid.x >= (self.graph.grid.frame.size.width + 2)){
+//                    selectedPoint.hidden = YES;
+//                } else {
+//                    selectedPoint.hidden = NO;
+//                }
+//            }
+//            
+//            if (self.nciSelPointTextRenderer){
+//                NSObject *text = self.nciSelPointTextRenderer([currentPoint[0] doubleValue], currentPoint[1]);
+//                if ([text isKindOfClass:[NSAttributedString class]]){
+//                    _selectedLabel.attributedText = (NSAttributedString *)text;
+//                } else {
+//                    _selectedLabel.text = (NSString *)text;
+//                }
+//            } else {
+//                NSMutableString *values = [[NSMutableString alloc] init];
+//                for (id val in currentPoint[1]){
+//                    if (![val isKindOfClass:[NSNull class]]){
+//                        [values appendString:[val description]];
+//                        [values appendString:@","];
+//                    }
+//                }
+//                if (_nciUseDateFormatter){
+//                    _selectedLabel.text = [NSString stringWithFormat:@"y: %@  x:%@", values,
+//                                           [dateFormatter stringFromDate: [NSDate dateWithTimeIntervalSince1970:[currentPoint[0] doubleValue]]]];
+//                } else {
+//                    _selectedLabel.text = [NSString stringWithFormat:@"y: %@  x:% 0.1f", values, [currentPoint[0] doubleValue]];
+//                }
+//            }
+//            return;
+//        }
+//        prevPoint = point;
+//    }
+//    for (UIView *selectedPoint in selectedPoints){
+//        _selectedLabel.text = @"";
+//        selectedPoint.hidden = YES;
+//    }
+//    selectedPointArgument = NAN;
 }
 
 - (void)layoutSubviews{
@@ -307,37 +321,59 @@
     }
 }
 
-- (void)addPoint:(double)arg val:(NSArray *)values{
-    [self.chartData addObject:@[@(arg), values]];
+//- (void)addPoint:(double)arg val:(NSArray *)values{
+//    //[self.chartData addObject:@[@(arg), values]];
+//}
+
+- (void)addSeries:(uint)length series:(NCISeries *)series{
+    _dataCount++;
+    [self.chartData addObject:series];
+    [self calculateBoundaries];
 }
 
 -(void)drawChart{
     [self setNeedsLayout];
 }
 
-- (NSArray *)getBoundaryValues{
-    float minY = MAXFLOAT;
-    float maxY = -MAXFLOAT;
-    for (NSArray *points in self.chartData){
-        for (NSNumber *point in points[1]){
-            if ([point isKindOfClass:[NSNull class]]){
-                continue;
-            }
-            float val = [point floatValue];
-            if (val < minY){
-                minY = val;
-            }
-            if (val > maxY){
-                maxY = val;
-            }
+- (void)calculateBoundaries {
+    if (_dataCount == 0) {
+        _minY = 0;
+        _maxY = 1;
+        _minX = 0;
+        _maxX = 1;
+        return;
+    }
+
+    _minY = MAXFLOAT;
+    _maxY = -MAXFLOAT;
+    _minX = MAXFLOAT;
+    _maxX = -MAXFLOAT;
+    for (NCISeries *series in self.chartData){
+        for (int i = 0; i < series.count; i++) {
+            float y = series->_y[i];
+            float x = series->_x[i];
+            if (y < _minY) _minY = y;
+            if (y > _maxY) _maxY = y;
+            if (x < _minX) _minX = x;
+            if (x > _maxX) _maxX = x;
         }
     }
-    float diff = (maxY - minY);
-    if (diff == 0){
-        maxY = maxY + 1;
-        minY = minY - 1;
+
+    if ((_maxY - _minY) == 0){
+        _maxY = _maxY + 1;
+        _minY = _minY - 1;
     }
-    return @[@(minY - diff*_topBottomGridSpace/100), @(maxY + diff*_topBottomGridSpace/100)];
+    if ((_maxX - _minX) == 0){
+        _maxX = _maxX + 1;
+        _minX = _minX - 1;
+    }
+
+}
+
+- (NSArray *)getBoundaryValues{
+    //[self calculateBoundaries];
+    float diff = (_maxY - _minY);
+    return @[@(_minY - diff*_topBottomGridSpace/100), @(_maxY + diff*_topBottomGridSpace/100)];
 }
 
 @end

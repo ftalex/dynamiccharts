@@ -13,8 +13,8 @@
 
 @property(nonatomic, strong) NCISimpleChartView *topChart;
 @property(nonatomic, strong) NCISimpleChartView *btmChart;
-@property(nonatomic)double minRangeVal;
-@property(nonatomic)double maxRangeVal;
+@property(nonatomic)float minRangeVal;
+@property(nonatomic)float maxRangeVal;
 
 //callbacks
 @property (nonatomic, copy) void (^rangesMoved)(void);

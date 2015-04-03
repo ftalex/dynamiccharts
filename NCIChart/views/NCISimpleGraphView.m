@@ -43,8 +43,17 @@
     _gridWidth = self.frame.size.width;
     
     if (_chart.chartData.count > 0){
-        _minXVal = [_chart.chartData[0][0] doubleValue];
-        _maxXVal = [[_chart.chartData lastObject][0] doubleValue];
+        _minXVal = MAXFLOAT;
+        _maxXVal = -MAXFLOAT;
+        for (NCISeries* series in _chart.chartData) {
+            if (_minXVal > series->_x[0]) {
+                _minXVal = series->_x[0];
+            }
+            if (_maxXVal < series->_x[series.count-1]) {
+                _maxXVal = series->_x[series.count-1];
+            }
+        }
+
         if (_maxXVal == _minXVal){
             _minXVal = _minXVal - 1;
             _maxXVal = _maxXVal + 1;
@@ -54,9 +63,6 @@
         [self.chart.yAxis redrawLabels:_gridHeigth min:_minYVal max:_maxYVal];
         _xStep = _gridWidth/(_maxXVal - _minXVal);
         [self.chart.xAxis redrawLabels:_gridWidth min:_minXVal max:_maxXVal];
-    } else {
-        [self.chart.yAxis resetLabels];
-        [self.chart.xAxis resetLabels];
     }
     _grid.frame = CGRectMake(0, 0, _gridWidth, _gridHeigth);
    [_grid setNeedsDisplay];
@@ -70,21 +76,12 @@
 
 
 - (CGPoint)pointByValueInGrid:(NSArray *)data{
-    double argument = [data[0] doubleValue];
-    if ([data[1] isKindOfClass:[NSNull class]] )
-        return CGPointMake(NAN, NAN);
-    float yVal;
-    if (self.chart.yAxis.nciAxisDecreasing){
-        yVal = (([data[1] floatValue] - _minYVal)*_yStep);
-    } else {
-        yVal = _gridHeigth - (([data[1] floatValue] - _minYVal)*_yStep);
-    }
-    
-    float xVal = [self getXByArgument: argument];
+    float yVal = [self getYByArgument: [data[1] floatValue]];
+    float xVal = [self getXByArgument: [data[0] floatValue]];
     return CGPointMake(xVal, yVal);
 }
 
-- (double)getArgumentByX:(float) pointX{
+- (float)getArgumentByX:(float) pointX{
     if (self.chart.xAxis.nciAxisDecreasing){
         return (_maxXVal - (pointX)/_xStep);
     } else {
@@ -92,7 +89,7 @@
     }
 }
 
-- (float)getXByArgument:(double )arg{
+- (float)getXByArgument:(float )arg{
     if (self.chart.xAxis.nciAxisDecreasing){
         return (_maxXVal  - arg)*_xStep;
     } else {
@@ -100,7 +97,7 @@
     }
 }
 
-- (float )getValByY:(float) pointY{
+- (float )getArgumentByY:(float) pointY{
     if (self.chart.yAxis.nciAxisDecreasing){
         return _maxYVal - (pointY)/_yStep;
     } else {
@@ -108,8 +105,23 @@
     }
 }
 
+- (float) getYByArgument:(float) arg {
+    // if (self.chart.yAxis.nciAxisDecreasing){
+    //     return (_maxYVal  - arg)*_yStep;
+    // } else {
+    //     return (arg  - _minYVal)*_yStep;
+    // }
+    if (self.chart.yAxis.nciAxisDecreasing){
+        return ((arg - _minYVal)*_yStep);
+    } else {
+        return _gridHeigth - ((arg - _minYVal)*_yStep);
+    }
+}
+
+
+
 - (NSArray *)getFirstLast{
-    return @[@(0), @(self.chart.chartData.count)];
+    return @[[NSNumber numberWithFloat:self.chart.minX], [NSNumber numberWithFloat:self.chart.maxX]];
 }
 
 @end

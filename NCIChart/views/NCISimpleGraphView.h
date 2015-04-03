@@ -8,6 +8,7 @@
 
 #import <UIKit/UIKit.h>
 #import "NCISimpleChartView.h"
+#import "NCISeries.h"
 
 @class NCISimpleGridView;
 
@@ -22,18 +23,19 @@
 @property(nonatomic) float yStep;
 @property(nonatomic) float minYVal;
 @property(nonatomic) float maxYVal;
-@property(nonatomic) double minXVal;
-@property(nonatomic) double maxXVal;
+@property(nonatomic) float minXVal;
+@property(nonatomic) float maxXVal;
 @property(nonatomic) float xStep;
 
 
 - (id)initWithChart: (NCISimpleChartView *)chartHolder;
 - (void)addSubviews;
 
-- (double)getArgumentByX:(float) pointX;
-- (float )getValByY:(float) pointY;
-- (CGPoint)pointByValueInGrid:(NSArray *)data;
-- (float)getXByArgument:(double) arg;
+- (float) getArgumentByX:(float) pointX;
+- (float) getArgumentByY:(float) pointY;
+- (CGPoint) pointByValueInGrid:(NSArray *)data;
+- (float) getXByArgument:(float) arg;
+- (float) getYByArgument:(float) arg;
 - (NSArray *)getFirstLast;
 
 

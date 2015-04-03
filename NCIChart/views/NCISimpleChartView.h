@@ -10,6 +10,7 @@
 #import "NCIChartOptions.h"
 #import "NCILine.h"
 #import "NCIAxis.h"
+#import "NCISeries.h"
 
 @class NCISimpleGraphView;
 
@@ -34,6 +35,7 @@
 @property (nonatomic, strong)NSMutableArray* nciSelPointImages;
 @property (nonatomic)NSArray* nciSelPointSizes;
 
+
 //callbacks
 @property (nonatomic, copy) NSAttributedString* (^nciSelPointTextRenderer)(double, NSArray *);
 @property (nonatomic, copy) void (^nciTapGridAction)(double, double, float, float);
@@ -52,15 +54,26 @@
 @property (nonatomic, copy) NSString* nciLeftRangeImageName;
 @property (nonatomic, copy) NSString* nciRightRangeImageName;
 
-@property(nonatomic)double minRangeVal;
-@property(nonatomic)double maxRangeVal;
+@property(nonatomic)float minRangeVal;
+@property(nonatomic)float maxRangeVal;
+
+@property(nonatomic)float maxX;
+@property(nonatomic)float maxY;
+@property(nonatomic)float minX;
+@property(nonatomic)float minY;
+
+
+@property(nonatomic) int dataCount;
+//extern NSString *const nciNumberOfDataSets;
 
 -(id)initWithFrame:(CGRect)frame andOptions:(NSDictionary *)opts;
 
 - (void)drawChart;
 - (void)addSubviews;
-- (void)addPoint:(double)arg val:(NSArray *)values;
+//- (void)addPoint:(double)arg val:(NSArray *)values;
+- (void)addSeries:(uint)length series:(NCISeries *)series;
 - (NSArray *)getBoundaryValues;
+- (void)calculateBoundaries;
 - (void)layoutSelectedPoint;
 - (void)defaultSetup;
 

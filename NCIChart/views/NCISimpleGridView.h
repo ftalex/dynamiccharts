@@ -8,6 +8,7 @@
 
 #import <UIKit/UIKit.h>
 #import "NCISimpleGraphView.h"
+#import "NCISeries.h"
 
 @interface NCISimpleGridView : UIView
 

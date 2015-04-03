@@ -63,13 +63,13 @@
 
 - (void)layoutSubviews{
     [super layoutSubviews];
-    if (self.nciChart.chartData.count == 0)
+    if (self.nciChart.dataCount == 0)
         return;
-    if (self.nciChart.topChart.minRangeVal != self.nciChart.topChart.minRangeVal){
-        self.nciChart.topChart.minRangeVal = [self.nciChart.topChart.chartData[0][0] doubleValue];
+    if (self.nciChart.topChart.minRangeVal){
+        self.nciChart.topChart.minRangeVal = self.nciChart.minX;
     }
-    if (self.nciChart.topChart.maxRangeVal != self.nciChart.topChart.maxRangeVal){
-        self.nciChart.topChart.maxRangeVal = [[self.nciChart.chartData lastObject][0] doubleValue];
+    if (self.nciChart.topChart.maxRangeVal){
+        self.nciChart.topChart.maxRangeVal = self.nciChart.maxX;
     }
     [self redrawRanges];
 }

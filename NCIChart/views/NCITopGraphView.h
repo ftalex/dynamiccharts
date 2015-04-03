@@ -8,6 +8,7 @@
 
 #import "NCIChartView.h"
 #import "NCIZoomGraphView.h"
+#import "NCISeries.h"
 
 @interface NCITopGraphView : NCIZoomGraphView
 

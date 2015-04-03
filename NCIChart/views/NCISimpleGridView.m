@@ -80,77 +80,51 @@
     CGContextStrokePath(currentContext);
 }
 
+//Rewrote this
+//Missing features:
+//Doesn't accept null values
+//Doesn't do curves
+//Doesn't have points
+//Doesn't have selected
+//Doesn't have fill?
 - (void)drawGraphLine:(NSArray *)firstLast{
+    float minRange = [firstLast[0] floatValue];
+    float maxRange = [firstLast[1] floatValue];
     for (UIView *view in self.subviews){
         [view removeFromSuperview];
     }
     NSMutableArray *paths = [[NSMutableArray alloc] init];
-    
-    long lastMoveInd = [firstLast[0] integerValue] - 1;
-    long firstInd = [firstLast[0] integerValue];
-    for (long ind = firstInd; ind < [firstLast[1] integerValue]; ind++){
-        NSArray *points = _graph.chart.chartData[ind];
-        for (int i = 0; i< ((NSArray *)points[1]).count; i++){
-            id val = points[1][i];
-            UIBezierPath *path;
-            if (paths.count < (i + 1) ){
-                path = [UIBezierPath bezierPath];
-                [path setLineWidth: [self lineWidth:i]];
-                [paths addObject:path];
-            } else {
-                path = paths[i];
-            };
-            CGPoint pointP = [_graph pointByValueInGrid:@[points[0], val]];
-            if ([val isKindOfClass:[NSNull class]] ){
-                if (lastMoveInd != (ind -1) && [self fillSeries:i]){
-                    [path addLineToPoint:CGPointMake( path.currentPoint.x, self.frame.size.height)];
-                    [path moveToPoint: pointP];
-                }
-                lastMoveInd = ind;
-            } else {
-                if (self.graph.chart.nciShowPoints)
-                    [self createPoint:pointP num:i];
-                if (lastMoveInd == (ind -1)){
-                    if ([self fillSeries:i]){
-                        [path moveToPoint: CGPointMake(pointP.x, self.frame.size.height)];
-                    } else {
-                        [path moveToPoint:pointP];
-                    }
-                }
-                
-                if ([self smoothSeries:i]){
-                    CGPoint nextPoint = (ind >= (_graph.chart.chartData.count -1)) ? pointP :
-                    [_graph pointByValueInGrid:@[_graph.chart.chartData[ind +1][0], _graph.chart.chartData[ind +1][1][i]]];
-                    
-                    CGPoint prevPoint = (ind < 1) ? pointP :
-                    [_graph pointByValueInGrid:@[_graph.chart.chartData[ind -1][0], _graph.chart.chartData[ind -1][1][i]]];
-                    
-                    float y;
-                    if (nextPoint.y > pointP.y){
-                        y = (pointP.y  +nextPoint.y)/2 - abs(pointP.y - nextPoint.y)/2;
-                    } else {
-                        y = (pointP.y  +nextPoint.y)/2  + abs(pointP.y - nextPoint.y)/2;
-                    }
-                    CGPoint nextControlPoint = CGPointMake( pointP.x + (pointP.x - nextPoint.x)/2, y);
-                    
-                    if (prevPoint.y < pointP.y){
-                        y = (pointP.y  +prevPoint.y)/2  - abs(pointP.y - prevPoint.y)/2;
-                    } else {
-                        y = (pointP.y  +prevPoint.y)/2  + abs(pointP.y - prevPoint.y)/2;
-                    }
-                    CGPoint prevControlPoint  = CGPointMake(prevPoint.x + (pointP.x - prevPoint.x)/2,  y);
-                    
-                    [path addCurveToPoint:pointP controlPoint1:prevControlPoint controlPoint2:nextControlPoint];
-                    
-                } else {
-                    [path addLineToPoint:pointP];
-                }
+    for (int i = 0; i < _graph.chart.chartData.count; i++) {
+        UIBezierPath *path = [UIBezierPath bezierPath];
+        [path setLineWidth: [self lineWidth:i]];
+        [paths addObject:path];
+        NCISeries* series = _graph.chart.chartData[i];
+        
+        bool inRange = false;
 
+        for (int j = 0; j < series.count; j++) {
+            if (series->_x[j] > maxRange) {
+                //[NSNumber numberWithFloat:10.0]
+                CGPoint pointP = [_graph pointByValueInGrid:@[[NSNumber numberWithFloat:series->_x[j]], [NSNumber numberWithFloat:series->_y[j]]]];
+                [path addLineToPoint: pointP];
+                break;
             }
+            if (series->_x[j] < minRange) {
+                if (!inRange) {
+                    CGPoint pointP = [_graph pointByValueInGrid:@[[NSNumber numberWithFloat:series->_x[j]], [NSNumber numberWithFloat:series->_y[j]]]];
+                    [path moveToPoint: pointP];
+                } else {
+                    inRange = true;
+                }
+            }
+            
+            CGPoint pointP = [_graph pointByValueInGrid:@[[NSNumber numberWithFloat:series->_x[j]], [NSNumber numberWithFloat:series->_y[j]]]];
+            [path addLineToPoint: pointP];
+
         }
     }
-    
-    for (int i= 0; i < paths.count; i++){
+
+    for (int i = 0; i < paths.count; i++){
         UIBezierPath *path = paths[i];
         UIColor *color = [self getColor:i];
         if ([self fillSeries:i] && !path.empty){
@@ -164,6 +138,90 @@
         [path stroke];
     }
 }
+
+// - (void)drawGraphLine:(NSArray *)firstLast{
+//     for (UIView *view in self.subviews){
+//         [view removeFromSuperview];
+//     }
+//     NSMutableArray *paths = [[NSMutableArray alloc] init];
+    
+//     long lastMoveInd = [firstLast[0] integerValue] - 1;
+//     long firstInd = [firstLast[0] integerValue];
+//     for (long ind = firstInd; ind < [firstLast[1] integerValue]; ind++){
+//         NSArray *points = _graph.chart.chartData[ind];
+//         for (int i = 0; i< ((NSArray *)points[1]).count; i++){
+//             id val = points[1][i];
+//             UIBezierPath *path;
+//             if (paths.count < (i + 1) ){
+//                 path = [UIBezierPath bezierPath];
+//                 [path setLineWidth: [self lineWidth:i]];
+//                 [paths addObject:path];
+//             } else {
+//                 path = paths[i];
+//             };
+//             CGPoint pointP = [_graph pointByValueInGrid:@[points[0], val]];
+//             if ([val isKindOfClass:[NSNull class]] ){
+//                 if (lastMoveInd != (ind -1) && [self fillSeries:i]){
+//                     [path addLineToPoint:CGPointMake( path.currentPoint.x, self.frame.size.height)];
+//                     [path moveToPoint: pointP];
+//                 }
+//                 lastMoveInd = ind;
+//             } else {
+//                 if (self.graph.chart.nciShowPoints) [self createPoint:pointP num:i];
+//                 if (lastMoveInd == (ind -1)){
+//                     if ([self fillSeries:i]){
+//                         [path moveToPoint: CGPointMake(pointP.x, self.frame.size.height)];
+//                     } else {
+//                         [path moveToPoint:pointP];
+//                     }
+//                 }
+                
+//                 if ([self smoothSeries:i]){
+//                     CGPoint nextPoint = (ind >= (_graph.chart.chartData.count -1)) ? pointP :
+//                     [_graph pointByValueInGrid:@[_graph.chart.chartData[ind +1][0], _graph.chart.chartData[ind +1][1][i]]];
+                    
+//                     CGPoint prevPoint = (ind < 1) ? pointP :
+//                     [_graph pointByValueInGrid:@[_graph.chart.chartData[ind -1][0], _graph.chart.chartData[ind -1][1][i]]];
+                    
+//                     float y;
+//                     if (nextPoint.y > pointP.y){
+//                         y = (pointP.y  +nextPoint.y)/2 - abs(pointP.y - nextPoint.y)/2;
+//                     } else {
+//                         y = (pointP.y  +nextPoint.y)/2  + abs(pointP.y - nextPoint.y)/2;
+//                     }
+//                     CGPoint nextControlPoint = CGPointMake( pointP.x + (pointP.x - nextPoint.x)/2, y);
+                    
+//                     if (prevPoint.y < pointP.y){
+//                         y = (pointP.y  +prevPoint.y)/2  - abs(pointP.y - prevPoint.y)/2;
+//                     } else {
+//                         y = (pointP.y  +prevPoint.y)/2  + abs(pointP.y - prevPoint.y)/2;
+//                     }
+//                     CGPoint prevControlPoint  = CGPointMake(prevPoint.x + (pointP.x - prevPoint.x)/2,  y);
+                    
+//                     [path addCurveToPoint:pointP controlPoint1:prevControlPoint controlPoint2:nextControlPoint];
+                    
+//                 } else {
+//                     [path addLineToPoint:pointP];
+//                 }
+
+//             }
+//         }
+//     }
+    
+//     for (int i= 0; i < paths.count; i++){
+//         UIBezierPath *path = paths[i];
+//         UIColor *color = [self getColor:i];
+//         if ([self fillSeries:i] && !path.empty){
+//             [[color colorWithAlphaComponent:0.1] setFill];
+//             if (path.currentPoint.x == path.currentPoint.x)
+//                 [path addLineToPoint:CGPointMake( path.currentPoint.x, self.frame.size.height)];
+//             [path fill];
+//             [path closePath];
+//         }
+//         [color setStroke];
+//         [path stroke];
+//     }
+// }
 
 - (bool)smoothSeries:(int)seriesNum{
     if (self.graph.chart.nciIsSmooth.count <= seriesNum){
