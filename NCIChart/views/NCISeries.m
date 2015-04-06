@@ -24,7 +24,7 @@
     return self;
 }
 
-- (id)initWithArrays:(NSUInteger)count xValues:(float *)x yValues:(float*)y
+-(id)initWithCount:(NSUInteger)count xValues:(float *)x yValues:(float*)y
 {
     self = [super init];
     if (self) {

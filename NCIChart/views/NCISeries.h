@@ -15,7 +15,7 @@
     float* _y;
 }
 
--(id)initWithArrays:(NSUInteger)count xValues:(float *)x yValues:(float*)y;
+-(id)initWithCount:(NSUInteger)count xValues:(float *)x yValues:(float*)y;
 
 @property (nonatomic, readonly) NSUInteger count;
 
